@@ -1,0 +1,61 @@
+import os
+import discord
+import asyncio
+from discord.ext import commands
+
+intents = discord.Intents.default()
+intents.members = True
+intents.guilds = True
+intents.voice_states = True
+
+bot = commands.Bot(command_prefix="!", intents=intents)
+
+# IDs des serveurs et du canal
+source_guild_id = 779042769066000394
+target_channel_id = 1223056047900463185
+
+previous_count = 0
+
+async def check_and_update_member_count():
+    global previous_count
+    source_guild = bot.get_guild(source_guild_id)
+    target_channel = bot.get_channel(target_channel_id)
+
+    if source_guild and target_channel:
+        voice_members = sum(len(vc.members) for vc in source_guild.voice_channels)
+        print(f"[DEBUG] Vérification périodique - Nombre de membres dans les canaux vocaux : {voice_members}")
+
+        if voice_members != previous_count:
+            print(f"[DEBUG] Changement détecté - Mise à jour du nom de canal à : actifs--{voice_members}-personnes")
+            previous_count = voice_members
+
+            try:
+                await target_channel.edit(name=f"actifs--{voice_members}-personnes")
+            except discord.errors.HTTPException as e:
+                if e.status == 429:
+                    print("[ERROR] Rate limité, réessayez après un délai plus long.")
+                    await asyncio.sleep(600)  # Attendre 10 minutes en cas de rate limit
+                else:
+                    print(f"[ERROR] Une erreur s'est produite : {e}")
+        else:
+            print("[DEBUG] Aucun changement détecté, pas de mise à jour nécessaire.")
+
+@bot.event
+async def on_ready():
+    print(f'Connecté en tant que {bot.user}')
+
+    # Tâche périodique pour vérifier les changements toutes les 4 minutes
+    while True:
+        await check_and_update_member_count()
+        await asyncio.sleep(240)  # Pause de 4 minutes entre chaque vérification
+
+@bot.event
+async def on_command_error(ctx, error):
+    if isinstance(error, commands.CommandNotFound):
+        await ctx.send("Commande inconnue, vérifie la syntaxe !")
+
+token = os.getenv('DISCORD_BOT_TOKEN')
+if token:
+    bot.run(token)
+else:
+    print("Token non trouvé. Assurez-vous de le définir dans vos variables d'environnement.")
