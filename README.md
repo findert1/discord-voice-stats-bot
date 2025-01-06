@@ -5,4 +5,4 @@ A Discord bot that monitors voice channel activity and updates a channel name wi
 you need to install 
 
 pip install discord.py
-pip install python-dotenv  # Optionnel si tu utilises un fichier .env pour les variables d'environnement
+pip install python-dotenv  # 
